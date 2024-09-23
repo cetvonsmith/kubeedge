@@ -9,7 +9,7 @@ import (
 	"github.com/kubeedge/beehive/pkg/core"
 )
 
-const inf = math.MaxInt32 // 使用32位的最大整数表示无穷大
+const inf = math.MaxInt32
 
 type EdgeConfig struct {
 	Cloud struct {
@@ -32,7 +32,6 @@ type LevelMessage struct {
 	Level int    `json:"level"`
 }
 
-// 读取配置文件
 func loadEdgeConfig(path string) EdgeConfig {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -49,12 +48,11 @@ func loadEdgeConfig(path string) EdgeConfig {
 	return config
 }
 
-// 初始化节点层级
 func initializeNodeLevels(config EdgeConfig) map[string]int {
 	nodeLevels := make(map[string]int)
-	nodeLevels[config.Cloud.IP] = 0 // 云节点层级为0
+	nodeLevels[config.Cloud.IP] = 0 // cloud
 
-	// 初始化边缘节点层级为无穷大
+	// init edge level is infinite
 	for _, node := range config.Nodes {
 		nodeLevels[node.IP] = inf
 	}
@@ -62,17 +60,16 @@ func initializeNodeLevels(config EdgeConfig) map[string]int {
 	return nodeLevels
 }
 
-// 广播和更新层级
 func broadcastAndUpdateLevels(config EdgeConfig, nodeLevels map[string]int) {
 	stable := false
 	for !stable {
 		stable = true
-		// 遍历每个节点并更新层级
+		// Iterate through each node and update the level
 		for _, node := range config.Nodes {
 			currentLevel := nodeLevels[node.IP]
 			updated := false
 
-			// 检查与云节点的距离
+			// Check the distance to the cloud node
 			if node.DistanceToCloud <= config.Cloud.SignalRange {
 				newLevel := nodeLevels[config.Cloud.IP] + 1
 				if newLevel < currentLevel {
@@ -82,7 +79,7 @@ func broadcastAndUpdateLevels(config EdgeConfig, nodeLevels map[string]int) {
 				}
 			}
 
-			// 检查与其他节点的距离并更新
+			// Check the distance to other nodes and update
 			for _, dist := range config.Distances {
 				if dist.Node1 == node.IP || dist.Node2 == node.IP {
 					var neighborIP string
@@ -92,7 +89,7 @@ func broadcastAndUpdateLevels(config EdgeConfig, nodeLevels map[string]int) {
 						neighborIP = dist.Node1
 					}
 					neighborLevel := nodeLevels[neighborIP]
-					if neighborLevel != inf { // 邻居节点的层级已经确定
+					if neighborLevel != inf { // neighbor level is update
 						newLevel := neighborLevel + 1
 						if newLevel < currentLevel && dist.Distance <= config.Cloud.SignalRange {
 							nodeLevels[node.IP] = newLevel
@@ -109,49 +106,49 @@ func broadcastAndUpdateLevels(config EdgeConfig, nodeLevels map[string]int) {
 	}
 }
 
-// EdgeHubModule 是 EdgeHub 的模块定义，实现 Module 接口
+// EdgeHubModule is the Module definition of EdgeHub and implements the Module interface
 type EdgeHubModule struct {
 	edgeIP     string
-	finalLevel int // 节点最终的层级
+	finalLevel int // final level result
 }
 
-// Name 返回模块名
+// Name
 func (eh *EdgeHubModule) Name() string {
 	return "edgehub"
 }
 
-// Group 返回模块组名
+// Group
 func (eh *EdgeHubModule) Group() string {
 	return "hub"
 }
 
-// Enable 表示模块是否启用
+// Enable
 func (eh *EdgeHubModule) Enable() bool {
 	return true
 }
 
-// Start 启动 EdgeHub 模块，运行层级确认方法
+// Start  EdgeHub
 func (eh *EdgeHubModule) Start() {
 	klog.Infof("Starting EdgeHub for edge: %s", eh.edgeIP)
 
-	// 加载配置文件
+	// Load configuration file
 	config := loadEdgeConfig("config.yaml")
 
-	// 初始化层级
+	// initialize level
 	nodeLevels := initializeNodeLevels(config)
 
-	// 广播并更新层级
+	// Broadcast and update the level
 	broadcastAndUpdateLevels(config, nodeLevels)
 
-	// 输出最终层级信息
-	klog.Infof("最终层级信息：")
-	klog.Infof("Cloud (IP: %s): %d级", config.Cloud.IP, nodeLevels[config.Cloud.IP])
+	// Final level information
+	klog.Infof("Final level information：")
+	klog.Infof("Cloud (IP: %s): %dlevel", config.Cloud.IP, nodeLevels[config.Cloud.IP])
 	for _, node := range config.Nodes {
-		klog.Infof("Node (IP: %s): %d级", node.IP, nodeLevels[node.IP])
+		klog.Infof("Node (IP: %s): %dlevel", node.IP, nodeLevels[node.IP])
 	}
 }
 
-// 注册 EdgeHub 模块
+// Register EdgeHub
 func RegisterEdgeHub(edgeIP string) {
 	core.Register(&EdgeHubModule{edgeIP: edgeIP})
 }

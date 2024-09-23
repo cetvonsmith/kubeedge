@@ -25,7 +25,7 @@ type LevelMessage struct {
 	Level int    `json:"level"`
 }
 
-// 读取配置文件
+// read config
 func loadCloudConfig() CloudConfig {
 	data, err := ioutil.ReadFile("./config.yaml")
 	if err != nil {
@@ -41,53 +41,52 @@ func loadCloudConfig() CloudConfig {
 	return config
 }
 
-// CloudHubModule 是 CloudHub 的模块定义，实现 Module 接口
 type CloudHubModule struct{}
 
-// Name 返回模块名
+// Name
 func (ch *CloudHubModule) Name() string {
 	return "cloudhub"
 }
 
-// Group 返回模块组名
+// Group
 func (ch *CloudHubModule) Group() string {
 	return "hub"
 }
 
-// Enable 表示模块是否启用
+// Enable
 func (ch *CloudHubModule) Enable() bool {
 	return true
 }
 
-// Start 启动 CloudHub 模块
+// Start  CloudHub
 func (ch *CloudHubModule) Start() {
 	klog.Infof("Starting CloudHub...")
 
-	// 加载配置
+	// load config
 	config := loadCloudConfig()
 
-	// 云节点IP和初始层级
+	// cloud IP and init level
 	cloudIP := config.Cloud.IP
 	cloudLevel := 0
 
-	// 定时广播云节点的层级信息
+	// Periodically broadcast layer information about cloud nodes
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
 
-			// 构建层级消息
+			// Build level message
 			msg := LevelMessage{
 				IP:    cloudIP,
 				Level: cloudLevel,
 			}
 
-			// 发送广播给所有边缘节点
+			// Sends a broadcast to all edge nodes
 			broadcastLevelMessage(msg)
 		}
 	}()
 }
 
-// 发送层级消息给边缘节点
+// Sends hierarchical messages to edge nodes
 func broadcastLevelMessage(msg LevelMessage) {
 	messageBody, err := json.Marshal(msg)
 	if err != nil {
@@ -95,15 +94,15 @@ func broadcastLevelMessage(msg LevelMessage) {
 		return
 	}
 
-	// 使用 BuildBody 设置消息内容
+	// Use BuildBody to set the message content
 	cloudHubMessage := model.NewMessage("").FillBody(messageBody)
 
-	// 通过 EdgeController 发送消息
+	// Sending messages via EdgeController
 	beehiveContext.Send("edgehub", *cloudHubMessage)
 	klog.Infof("Broadcasted level message to edges: %+v", msg)
 }
 
-// 注册 CloudHub 模块
+// Register the CloudHub module
 func RegisterCloudHub() {
 	core.Register(&CloudHubModule{})
 }

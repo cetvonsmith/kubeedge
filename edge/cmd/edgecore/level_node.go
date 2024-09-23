@@ -19,31 +19,31 @@ type EdgeConfig struct {
 	} `yaml:"nodes"`
 }
 
-// 读取配置文件
+// Read configuration file
 func loadEdgeConfig(path string) EdgeConfig {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
-		klog.Fatalf("无法读取配置文件: %v", err)
+		klog.Fatalf("Unable to read the configuration file: %v", err)
 	}
 
 	var config EdgeConfig
 	err = yaml.Unmarshal(data, &config)
 	if err != nil {
-		klog.Fatalf("配置文件解析错误: %v", err)
+		klog.Fatalf("Configuration file parsing error: %v", err)
 	}
 
 	return config
 }
 
 func main() {
-	// 加载配置文件
+	// Load configuration file
 	config := loadEdgeConfig("config.yaml")
 
-	// 为每个边缘节点注册 EdgeHub 模块
+	// Register the EdgeHub module for each edge node
 	for _, node := range config.Nodes {
-		edgehub.RegisterEdgeHub(node.IP) // 注册每个边缘节点
+		edgehub.RegisterEdgeHub(node.IP) // Register each Edge node
 	}
 
-	// 启动 Beehive 框架
+	// run Beehive
 	core.Run()
 }

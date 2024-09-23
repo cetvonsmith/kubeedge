@@ -27,13 +27,11 @@ import (
 )
 
 func main() {
-	// 初始化 BeehiveContext
-	//core.Run()
 
-	// 注册 CloudHub 模块
+	// Register CloudHub
 	cloudhub.RegisterCloudHub()
 
-	// 启动 Beehive 框架
+	// run Beehive
 	core.Run()
 
 	command := app.NewCloudCoreCommand()
